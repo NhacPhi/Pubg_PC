@@ -23,8 +23,9 @@ public class Controller : MonoBehaviour
     public float MouseSentitivity = 60f;
     public float PlayerSpeed = 5.0f;
     public float RuningSpeed = 7.0f;
-    public float JumpSpeed = 5.0f;
     public float ThrowingFore = 100f;
+
+
 
     // Audio
     // Private properties
@@ -33,9 +34,12 @@ public class Controller : MonoBehaviour
     float m_VerticalAngle, m_HorizontalAngle;
 
     // Check player in ground
-    bool m_Grounded;
-    float m_GroundTimer;
-    float m_SpeedAtJump = 0.0f;
+    public float m_SpeedAtJump = 1.2f;
+    float m_GroundedTimer;
+    float jumpSpeed = 5f;
+    bool Grounded;
+
+    float VelocityVetical = 0;
 
     // Some function use of Instance is called other clase
     public float Speed { get; private set; } = 0.0f;
@@ -57,56 +61,50 @@ public class Controller : MonoBehaviour
         MainCamera.transform.rotation = Quaternion.identity;
 
         // Ground
-        m_IsPaused = false;
-        m_Grounded = true;
+        Grounded = true;
 
         // Movement 
         m_VerticalAngle = 0.0f;
         m_HorizontalAngle = transform.localEulerAngles.y;
 
         m_CharacterController = GetComponent<CharacterController>();
+        m_CharacterController.detectCollisions = false;
 
     }
 
     // Update is called once per frame
     void Update()
     {
-        // Handle movement of player;
+        bool wasGrounded = Grounded;
 
-        // check player in Ground use CharacterController
-        //if(Input.GetKeyDown(KeyCode.T))
-        //{
-        //    GameObject boom = Instantiate(Boom, transform.position + transform.forward, Quaternion.identity);
-        //    Rigidbody rg = boom.GetComponent<Rigidbody>();
-        //    //Vector3 dir = transform.position - Camera.main.ViewportToWorldPoint(Input.mousePosition);    
-        //    Vector3 dir = (transform.forward +new Vector3(0,transform.eulerAngles.y,0));
-        //    Debug.Log("Euler Angle : " + transform.eulerAngles.y/180 * Mathf.Rad2Deg);
-        //    Debug.Log("Angle :" + Mathf.Rad2Deg);
-        //    rg.AddForce(dir * ThrowingFore);
-        //}
-        if(!m_CharacterController.isGrounded)
+        bool loosedGrounding = false;
+        if (!m_CharacterController.isGrounded)
         {
-            // Handle charactor controller juimp after 0.5s
+            if (!Grounded)
+            {
+                m_GroundedTimer += Time.deltaTime;
+                if (m_GroundedTimer >= 0.5f)
+                {
+                    Debug.Log("LOL");
+                    loosedGrounding = true;
+                    Grounded = false;
+                }
+            }
         }
         else
         {
-            m_Grounded = true;
-            //Debug.Log("Jump : true");
+            m_GroundedTimer = 0.0f;
+            Grounded = true;
         }
 
-        Vector3 move = Vector3.zero;
-        if(!m_IsPaused)
+        if (Grounded && Input.GetKeyDown(KeyCode.Space))
         {
-            // Jump
-            if(m_Grounded && Input.GetButtonDown("Jump"))
-            {
-                Debug.Log("Jump :>");
-
-                m_VerticalSpeed = JumpSpeed;
-                m_Grounded = false;
-            }
+            VelocityVetical = jumpSpeed;
+            Debug.Log("Jump");
+            Grounded = false;
         }
-
+        Vector3 move = Vector3.zero;
+       
         // Handle run when player bring the Gun
 
         // movement player by KeyBoard
@@ -115,11 +113,11 @@ public class Controller : MonoBehaviour
         if (move.sqrMagnitude > 0)
         {
             move.Normalize();
-            Weapon.Walk = true;
+            //Weapon.Walk = true;
         }
         else
         {
-            Weapon.Walk = false;
+            //Weapon.Walk = false;
         }
             
         if(Input.GetKey(KeyCode.LeftShift))
@@ -134,6 +132,15 @@ public class Controller : MonoBehaviour
 
         move = transform.TransformDirection(move);
         m_CharacterController.Move(move);
+
+        // handle gravity
+        VelocityVetical = VelocityVetical - 9.8f * Time.deltaTime;
+        if (VelocityVetical < -9.8f)
+        {
+            VelocityVetical = -9.8f;
+        }
+        Vector3 verticalSpeed = new Vector3(0, VelocityVetical * Time.deltaTime, 0);
+        m_CharacterController.Move(verticalSpeed);
 
         // Player rotation by Mouse
 
